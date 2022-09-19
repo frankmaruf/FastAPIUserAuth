@@ -2,4 +2,4 @@
 
 also
 
-## User CURD, Post CURD
+## User CRUD, Post CRUD
