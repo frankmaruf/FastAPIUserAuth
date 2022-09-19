@@ -7,7 +7,7 @@ import email_validator
 import passlib.hash as hash
 import jwt
 from sqlalchemy.orm import Session
-import models, schemas
+from . import models, schemas
 
 JWT_SECRET = "DSFDSJKFLNSLDFJDSfslkfjsdlkfdsn234534523423"
 

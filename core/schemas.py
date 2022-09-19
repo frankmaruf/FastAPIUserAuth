@@ -1,5 +1,7 @@
 # import pydantic
+
 import datetime
+
 from pydantic import BaseModel
 
 from typing import List, Union
@@ -29,12 +31,12 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
-    created_at: datetime.datetime
 
 
 class User(UserBase):
     id: int
     is_active: bool
+    created_at: datetime.date
     # posts: List[Post] = []
     class Config:
         orm_mode = True
