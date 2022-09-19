@@ -1,26 +1,26 @@
 # import pydantic
-
+from fastapi.security import OAuth2PasswordBearer
 import datetime
 
 from pydantic import BaseModel
 
 from typing import List, Union
 
-# class PostBase(BaseModel):
-#     post_title: str
-#     post_description: Union[str, None] = None
-#     post_image: str
+class PostBase(BaseModel):
+    post_title: str
+    post_description: Union[str, None] = None
+    post_image: str
 
 
-# class PostCreate(PostBase):
-#     pass
+class PostCreate(PostBase):
+    pass
 
-# class Post(PostBase):
-#     id: int
-#     owner_id: int
-#     created_at: datetime.datetime
-#     class Config:
-#         orm_mode = True
+class Post(PostBase):
+    id: int
+    owner_id: int
+    created_at: datetime.date
+    class Config:
+        orm_mode = True
 
 
 class UserBase(BaseModel):
@@ -37,6 +37,11 @@ class User(UserBase):
     id: int
     is_active: bool
     created_at: datetime.date
-    # posts: List[Post] = []
+    posts: List[Post] = []
     class Config:
         orm_mode = True
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str

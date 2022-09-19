@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship
 import passlib.hash as hash
 from .database import Base
 
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer,primary_key=True,index=True)
@@ -14,16 +15,16 @@ class User(Base):
     password = Column(String)
     is_active = Column(Boolean, default=True)
     created_at = Column(Date,default=datetime.datetime.utcnow())
-    # posts = relationship("Post",back_populates="user")
+    posts = relationship("Post",back_populates="owner")
     def password_verification(self,password:str):
         return hash.bcrypt.verify(password, self.password)
 
-# class Post(Base):
-#     __tablename__= "posts"
-#     id = Column(Integer,primary_key=True,index=True)
-#     owner_id = Column(Integer, ForeignKey("users.id"))
-#     post_title = Column(String, index=True)
-#     post_image = Column(String, index=True)
-#     post_description = Column(String, index=True)
-#     created_at = Column(Date,default=datetime.datetime.utcnow())
-#     owner = relationship("User",back_populates="posts")
+class Post(Base):
+    __tablename__= "posts"
+    id = Column(Integer,primary_key=True,index=True)
+    owner_id = Column(Integer, ForeignKey("users.id"))
+    post_title = Column(String, index=True)
+    post_image = Column(String, index=True)
+    post_description = Column(String, index=True)
+    created_at = Column(Date,default=datetime.datetime.utcnow())
+    owner = relationship("User",back_populates="posts")
