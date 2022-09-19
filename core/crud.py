@@ -10,8 +10,10 @@ from sqlalchemy.orm import Session
 from . import models, schemas
 from datetime import datetime, timedelta
 from typing import Union
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 JWT_SECRET = "DSFDSJKFLNSLDFJDSfslkfjsdlkfdsn234534523423"
-
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 ALGORITHM = "HS256"
 
 def get_user(db: Session, user_id: int):
@@ -93,7 +95,30 @@ def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None
 
 
 
+def get_current_user(db: Session,token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(jwt=token, key=JWT_SECRET, algorithms=[ALGORITHM])
+        email: str = payload.get("email")
+        if email is None:
+            raise credentials_exception
+        token_data = schemas.TokenData(email=email)
+    except jwt.InvalidTokenError:
+        raise credentials_exception
+    user = get_user_by_email(db, email=token_data.email)
+    if user is None:
+        raise credentials_exception
+    return user
 
+
+def get_current_active_user(current_user: models.User = Depends(get_current_user)):
+    if current_user.disabled:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user
 
 
 
