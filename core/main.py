@@ -80,8 +80,7 @@ def read_user(user_id: int, db: Session = Depends(crud.get_db)):
 
 @app.post("/users/{user_id}/posts/", response_model=schemas.Post)
 def create_post_for_user(
-    user_id: int, post: schemas.PostCreate, db: Session = Depends(crud.get_db), token: str = Depends(crud.oauth2_scheme)
-):
+    user_id: int, post: schemas.PostCreate, db: Session = Depends(crud.get_db)):
     if not token:
         HTTPException(status_code=401, detail="User Must be login")
     return crud.create_users_post(db=db, post=post, user_id=user_id)
@@ -90,15 +89,11 @@ def create_post_for_user(
 
 """"Post by User"""
 
-@app.post("/users/me/posts/", response_model=schemas.Post)
+@app.post("/users/me/post/", response_model=schemas.Post)
 def create_post_by_user(
-    post: schemas.PostCreate,user: schemas.User=Depends(crud.get_current_active_user), db: Session = Depends(crud.get_db), token: str = Depends(crud.oauth2_scheme)
+    post: schemas.PostCreate,current_user: schemas.User=Depends(crud.get_current_active_user), db: Session = Depends(crud.get_db), token: str = Depends(crud.oauth2_scheme)
 ):
-
-    if not token:
-        HTTPException(status_code=401, detail="User Must be login")
-    user_id = user.id
-    return crud.create_user_post(user_id=user_id,db=db, post=post)
+    return crud.create_user_post(user_id=current_user.id,db=db, post=post)
 
 
 
