@@ -1,20 +1,24 @@
-# import db
-# import models
-# import sqlalchemy.orm as orm
-# import schemas
+from jose import JWTError, jwt
 import email_validator
-# import fastapi
 import passlib.hash as hash
-import jwt
 from sqlalchemy.orm import Session
 from . import models, schemas
 from datetime import datetime, timedelta
 from typing import Union
 from fastapi import Depends, FastAPI, HTTPException, status
+from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from .database import SessionLocal
 JWT_SECRET = "DSFDSJKFLNSLDFJDSfslkfjsdlkfdsn234534523423"
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 ALGORITHM = "HS256"
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 def get_user(db: Session, user_id: int):
     return db.query(models.User).filter(models.User.id == user_id).first()
@@ -30,15 +34,7 @@ def get_users(db: Session, skip: int = 0, limit: int = 100):
 
 
 def create_user(db:Session,user: schemas.UserCreate):
-    # check for valid email
-    # try:
-    #     isVaild = email_validator.validate_email(email=user.email)
-    #     email = isVaild.email
-    # except email_validator.EmailNotValidError:
-    #     raise fastapi.HTTPException(status_code=400,detail="Provide valid email id")
-    # convert normal password to hash form
     hasedPassword = hash.bcrypt.hash(user.password)
-    # create the user model to be saved in database
     db_user = models.User(
         email = user.email,
         name = user.name,
@@ -63,26 +59,6 @@ def login(email:str,password:str,db:Session):
     return db_user
 
 
-# def create_access_token(user: models.User):
-#     #convert user model to user schema
-#     user_schema = schemas.User.from_orm(user)
-#     # convert obj to dictionary
-#     db_user = user_schema.dict()
-#     del db_user['created_at']
-#     token = jwt.encode(db_user,JWT_SECRET)
-#     return dict(access_token=token,token_type="bearer")
-
-
-
-# def create_access_token(user: models.User):
-#     #convert user model to user schema
-#     user_schema = schemas.User.from_orm(user)
-#     # convert obj to dictionary
-#     db_user = user_schema.dict()
-#     del db_user['created_at']
-#     token = jwt.encode(db_user,JWT_SECRET)
-#     return dict(access_token=token,token_type="bearer")
-
 def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None):
     to_encode = data.copy()
     if expires_delta:
@@ -90,33 +66,32 @@ def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(payload=to_encode,key=JWT_SECRET, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode,key=JWT_SECRET, algorithm=ALGORITHM)
     return encoded_jwt
 
 
-
-def get_current_user(db: Session,token: str = Depends(oauth2_scheme)):
+def get_current_user(db:Session=Depends(get_db),token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(jwt=token, key=JWT_SECRET, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, key=JWT_SECRET, algorithms=[ALGORITHM])
         email: str = payload.get("email")
         if email is None:
             raise credentials_exception
         token_data = schemas.TokenData(email=email)
-    except jwt.InvalidTokenError:
+    except JWTError:
         raise credentials_exception
-    user = get_user_by_email(db, email=token_data.email)
+    user = get_user_by_email(db=db,email=token_data.email)
     if user is None:
         raise credentials_exception
     return user
 
 
 def get_current_active_user(current_user: models.User = Depends(get_current_user)):
-    if current_user.disabled:
+    if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
@@ -127,7 +102,17 @@ def get_posts(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Post).offset(skip).limit(limit).all()
 
 
-def create_user_post(db: Session, post: schemas.PostCreate, user_id: int):
+"""Post by user id"""
+
+def create_users_post(db: Session, post: schemas.PostCreate, user_id: int):
+    db_post = models.Post(**post.dict(), owner_id=user_id)
+    db.add(db_post)
+    db.commit()
+    db.refresh(db_post)
+    return db_post
+
+"""Post by User"""
+def create_user_post(user_id:int,db: Session, post: schemas.PostCreate):
     db_post = models.Post(**post.dict(), owner_id=user_id)
     db.add(db_post)
     db.commit()
