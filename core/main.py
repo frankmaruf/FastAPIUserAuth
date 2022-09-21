@@ -1,11 +1,10 @@
-from pyexpat import model
 from typing import List
-from datetime import datetime, timedelta
+from datetime import timedelta
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 from . import crud, models, schemas
-from .database import SessionLocal, engine
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from .database import engine
+from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 
 models.Base.metadata.create_all(bind=engine)
@@ -97,10 +96,11 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(crud.get_d
     return posts
 
 
-
-
-
-
+"""Delete Auth User Post"""
+@app.delete("/users/me/posts/{post_id}")
+def delete_post(post_id:int,db: Session = Depends(crud.get_db),current_user: schemas.User = Depends(crud.get_current_active_user)):
+    crud.delete_post(db=db,user_id=current_user.id,post_id=post_id)
+    return "Post Deleted"
 
 """All Users Post List"""
 @app.get("/posts/", response_model=List[schemas.Post])

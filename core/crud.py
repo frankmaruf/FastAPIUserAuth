@@ -123,3 +123,12 @@ def create_user_post(user_id:int,db: Session, post: schemas.PostCreate):
 def get_posts_by_user(db: Session,user_id:int, skip: int = 0, limit: int = 100):
     posts = db.query(models.Post).filter_by(owner_id=user_id).limit(limit=limit).offset(skip).all()
     return posts
+
+"""Delete Auth User Post"""
+
+def delete_post(db: Session,user_id:int,post_id:int):
+    post = db.query(models.Post).filter_by(owner_id=user_id).filter_by(id=post_id).first()
+    if not post:
+        raise HTTPException(status_code=400, detail="Post Not Exist")
+    db.delete(post)
+    db.commit()
