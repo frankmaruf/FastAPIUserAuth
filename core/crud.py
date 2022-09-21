@@ -118,3 +118,8 @@ def create_user_post(user_id:int,db: Session, post: schemas.PostCreate):
     db.commit()
     db.refresh(db_post)
     return db_post
+
+# Auth User Posts List
+def get_posts_by_user(db: Session,user_id:int, skip: int = 0, limit: int = 100):
+    posts = db.query(models.Post).filter_by(owner_id=user_id).limit(limit=limit).offset(skip).all()
+    return posts

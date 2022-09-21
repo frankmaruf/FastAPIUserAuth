@@ -7,6 +7,7 @@ from . import crud, models, schemas
 from .database import SessionLocal, engine
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
+
 models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
 origins = [
@@ -22,16 +23,6 @@ app.add_middleware(
 )
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-
-
-# def get_db():
-#     db = SessionLocal()
-#     try:
-#         yield db
-#     finally:
-#         db.close()
-
 
 
 @app.post("/users/", response_model=schemas.User)
@@ -78,28 +69,40 @@ def read_user(user_id: int, db: Session = Depends(crud.get_db)):
 
 """Post by user_id"""
 
+
 @app.post("/users/{user_id}/posts/", response_model=schemas.Post)
 def create_post_for_user(
-    user_id: int, post: schemas.PostCreate, db: Session = Depends(crud.get_db)):
+        user_id: int, post: schemas.PostCreate, db: Session = Depends(crud.get_db), token: str = Depends(crud.oauth2_scheme)):
     if not token:
         HTTPException(status_code=401, detail="User Must be login")
     return crud.create_users_post(db=db, post=post, user_id=user_id)
 
 
+""""Post by Auth User"""
 
-""""Post by User"""
 
 @app.post("/users/me/post/", response_model=schemas.Post)
 def create_post_by_user(
-    post: schemas.PostCreate,current_user: schemas.User=Depends(crud.get_current_active_user), db: Session = Depends(crud.get_db), token: str = Depends(crud.oauth2_scheme)
+    post: schemas.PostCreate, current_user: schemas.User = Depends(crud.get_current_active_user), db: Session = Depends(crud.get_db)
 ):
-    return crud.create_user_post(user_id=current_user.id,db=db, post=post)
+    return crud.create_user_post(user_id=current_user.id, db=db, post=post)
+
+
+""""Auth User Post List"""
+
+
+@app.get("/users/me/posts/", response_model=List[schemas.Post])
+def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(crud.get_db),current_user: schemas.User = Depends(crud.get_current_active_user)):
+    posts = crud.get_posts_by_user(db, skip=skip, limit=limit,user_id=current_user.id)
+    return posts
 
 
 
 
 
 
+
+"""All Users Post List"""
 @app.get("/posts/", response_model=List[schemas.Post])
 def read_posts(skip: int = 0, limit: int = 100, db: Session = Depends(crud.get_db)):
     posts = crud.get_posts(db, skip=skip, limit=limit)
