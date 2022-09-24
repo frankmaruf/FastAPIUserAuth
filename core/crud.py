@@ -2,6 +2,7 @@ from jose import JWTError, jwt
 import email_validator
 import passlib.hash as hash
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 from . import models, schemas
 from datetime import datetime, timedelta
 from typing import Union
@@ -131,4 +132,10 @@ def delete_post(db: Session,user_id:int,post_id:int):
     if not post:
         raise HTTPException(status_code=400, detail="Post Not Exist")
     db.delete(post)
+    db.commit()
+
+
+def update_post(db: Session,user_id:int,post_id:int,post:schemas.PostCreate):
+    db_post = db.query(models.Post).filter_by(owner_id=user_id).filter_by(id=post_id)
+    db_post.update(post.dict(exclude_unset=True))
     db.commit()

@@ -6,6 +6,7 @@ from . import crud, models, schemas
 from .database import engine
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.encoders import jsonable_encoder
 
 models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
@@ -101,6 +102,20 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(crud.get_d
 def delete_post(post_id:int,db: Session = Depends(crud.get_db),current_user: schemas.User = Depends(crud.get_current_active_user)):
     crud.delete_post(db=db,user_id=current_user.id,post_id=post_id)
     return "Post Deleted"
+
+
+
+
+"""update Auth User Post"""
+@app.patch("/users/me/posts/{post_id}", response_model=schemas.Post)
+def update(post_id:int,post: schemas.PostCreate,db: Session = Depends(crud.get_db),current_user: schemas.User = Depends(crud.get_current_active_user)):
+    exists = db.query(models.Post).filter_by(owner_id=current_user.id).filter_by(id=post_id).first()
+    if not exists:
+        raise HTTPException(status_code=404,detail="Post Not Exist")
+    crud.update_post(db=db,user_id=current_user.id,post_id=post_id,post=post)
+    return exists
+
+
 
 """All Users Post List"""
 @app.get("/posts/", response_model=List[schemas.Post])
